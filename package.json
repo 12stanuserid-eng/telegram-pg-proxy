@@ -1,0 +1,17 @@
+{
+  "name": "telegram-pg-proxy",
+  "version": "1.0.0",
+  "description": "PostgreSQL Wire-Protocol Proxy that stores data in Telegram channels",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^20.11.0"
+  }
+}
