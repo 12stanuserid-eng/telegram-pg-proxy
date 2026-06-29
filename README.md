@@ -148,15 +148,25 @@ The proxy implements an internal queue with automatic retry and backoff:
 
 ## Deployment on Render
 
-1. Push this repo to GitHub
-2. Create a new **Web Service** on Render
-3. Select "Docker" as the environment
-4. Add environment variables:
-   - `TELEGRAM_BOT_TOKEN`
-   - `TELEGRAM_CHANNEL_ID`
-5. Deploy
+Code is already at: https://github.com/12stanuserid-eng/telegram-pg-proxy
 
-Or use the `render.yaml` blueprint for Render Blueprint.
+### Quick Deploy
+
+1. Go to https://dashboard.render.com/ and log in
+2. Click **New +** → **Web Service**
+3. Connect GitHub → select `12stanuserid-eng/telegram-pg-proxy`
+4. Render will auto-detect the Dockerfile — just click **Deploy**
+5. Before deploying, add these environment variables:
+   - `TELEGRAM_BOT_TOKEN` = your bot token
+   - `TELEGRAM_CHANNEL_ID` = your channel ID (e.g., `-1003998671748`)
+6. Click **Deploy**
+
+Your service will be available at: `postgresql://postgres@telegram-pg-proxy.onrender.com:5432/postgres`
+
+### Using render.yaml Blueprint
+
+If you're using Render Blueprint (Infrastructure as Code), just connect your GitHub repo
+and the `render.yaml` file will be picked up automatically.
 
 ## Limitations
 
