@@ -6,12 +6,16 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsx src/index.ts"
+    "dev": "tsx src/index.ts",
+    "bridge": "tsx src/bridge/run-bridge.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "ws": "^8.21.0"
+  },
   "devDependencies": {
-    "typescript": "^5.4.0",
+    "@types/node": "^20.11.0",
+    "@types/ws": "^8.18.1",
     "tsx": "^4.7.0",
-    "@types/node": "^20.11.0"
+    "typescript": "^5.4.0"
   }
 }
