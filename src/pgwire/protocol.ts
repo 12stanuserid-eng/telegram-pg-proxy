@@ -270,3 +270,124 @@ export function encodeStartupResponse(pid: number, secretKey: number): Buffer[] 
 export function encodeSSLReject(): Buffer {
   return Buffer.from([0x4e]); // 'N'
 }
+
+// ========================================================
+// Extended Query Protocol support
+// ========================================================
+
+/**
+ * ParseComplete ('1') — sent after a successful Parse
+ */
+export function encodeParseComplete(): Buffer {
+  return buildMessage('1', Buffer.alloc(0));
+}
+
+/**
+ * BindComplete ('2') — sent after a successful Bind
+ */
+export function encodeBindComplete(): Buffer {
+  return buildMessage('2', Buffer.alloc(0));
+}
+
+/**
+ * NoData ('n') — sent when a Describe targets something with no result data
+ */
+export function encodeNoData(): Buffer {
+  return buildMessage('n', Buffer.alloc(0));
+}
+
+/**
+ * Parse a Parse ('P') message (with type byte and length already validated).
+ * Returns { name, sql }
+ *
+ * Format:
+ *   'P' | Int32 len | String name | String sql | Int16 numParamTypes | [Int32 typeOids...]
+ */
+export function parseParseMessage(buffer: Buffer): { name: string; sql: string } {
+  // Skip type byte (1) + length (4) = 5
+  let offset = 5;
+  // Statement name (null-terminated)
+  const nameEnd = buffer.indexOf(0, offset);
+  const name = nameEnd >= 0 ? buffer.toString('utf-8', offset, nameEnd) : '';
+  offset = (nameEnd >= 0 ? nameEnd + 1 : buffer.length);
+  // SQL string (null-terminated)
+  const sqlEnd = buffer.indexOf(0, offset);
+  const sql = sqlEnd >= 0 ? buffer.toString('utf-8', offset, sqlEnd) : '';
+  // (We ignore the optional parameter type OIDs — not needed for our proxy)
+  return { name, sql };
+}
+
+/**
+ * Parse a Bind ('B') message.
+ * Returns { portalName, statementName, params }
+ *
+ * Format:
+ *   'B' | Int32 len | String portal | String stmt | Int16 numFmtCodes | [Int16 codes...]
+ *   | Int16 numParams | [{Int32 len, byte[] val}...] | Int16 numResultFmtCodes | [Int16 codes...]
+ */
+export function parseBindMessage(buffer: Buffer): {
+  portalName: string;
+  statementName: string;
+  params: (string | null)[];
+} {
+  // Skip type byte (1) + length (4) = 5
+  let offset = 5;
+
+  // Portal name (null-terminated)
+  const portalEnd = buffer.indexOf(0, offset);
+  const portalName = portalEnd >= 0 ? buffer.toString('utf-8', offset, portalEnd) : '';
+  offset = (portalEnd >= 0 ? portalEnd + 1 : buffer.length);
+
+  // Prepared statement name (null-terminated)
+  const stmtEnd = buffer.indexOf(0, offset);
+  const statementName = stmtEnd >= 0 ? buffer.toString('utf-8', offset, stmtEnd) : '';
+  offset = (stmtEnd >= 0 ? stmtEnd + 1 : buffer.length);
+
+  // Number of parameter format codes
+  const numFmtCodes = buffer.readUInt16BE(offset);
+  offset += 2;
+  // Skip format codes
+  offset += numFmtCodes * 2;
+
+  // Number of parameters
+  const numParams = buffer.readUInt16BE(offset);
+  offset += 2;
+
+  const params: (string | null)[] = [];
+  for (let i = 0; i < numParams; i++) {
+    const paramLen = buffer.readInt32BE(offset);
+    offset += 4;
+    if (paramLen === -1) {
+      // NULL
+      params.push(null);
+    } else {
+      params.push(buffer.toString('utf-8', offset, offset + paramLen));
+      offset += paramLen;
+    }
+  }
+
+  // Skip result column format codes (we don't need them)
+  if (offset < buffer.length) {
+    const numResultFmtCodes = buffer.readUInt16BE(offset);
+    offset += 2 + numResultFmtCodes * 2;
+  }
+
+  return { portalName, statementName, params };
+}
+
+/**
+ * Substitute $N placeholders in a SQL string with actual parameter values.
+ * Values are SQL-escaped (single quotes doubled) and wrapped in single quotes.
+ * NULL values become the SQL keyword NULL (unquoted).
+ */
+export function substituteParams(sql: string, params: (string | null)[]): string {
+  return sql.replace(/\$(\d+)/g, (_match, idx: string) => {
+    const i = parseInt(idx, 10) - 1; // $1 → index 0
+    if (i < 0 || i >= params.length) return _match; // leave as-is if out of bounds
+    const val = params[i];
+    if (val === null) return 'NULL';
+    // Escape single quotes by doubling them, then wrap in quotes
+    const escaped = val.replace(/'/g, "''");
+    return `'${escaped}'`;
+  });
+}
