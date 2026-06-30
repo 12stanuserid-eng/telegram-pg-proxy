@@ -1,6 +1,7 @@
 import { PgServer } from './pgwire/server.js';
 import { TelegramStorage } from './storage/telegram.js';
 import { QueryEngine } from './engine/engine.js';
+import * as http from 'http';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHANNEL_ID = process.env.TELEGRAM_CHANNEL_ID;
@@ -23,7 +24,7 @@ async function main() {
   console.log(`Bot token: ${BOT_TOKEN!.substring(0, 8)}...`);
   console.log(`Channel ID: ${CHANNEL_ID!}`);
   console.log(`PG Port: ${PG_PORT}`);
-  console.log(`Render PORT: ${RENDER_PORT}`);
+  console.log(`Health Port: ${RENDER_PORT}`);
   console.log(`Host: ${HOST}`);
 
   // Initialize Telegram storage
@@ -40,16 +41,21 @@ async function main() {
   // Initialize query engine
   const engine = new QueryEngine(storage);
 
-  // Start PG server on PGPORT (for PostgreSQL protocol)
-  console.log(`\nStarting PG Proxy on port ${PG_PORT}...`);
-  const pgServer = new PgServer(engine, PG_PORT, HOST);
-  await pgServer.start();
+  // Start HTTP health check server on Render's PORT
+  const healthServer = http.createServer((req, res) => {
+    console.log(`Health check: ${req.method} ${req.url}`);
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('OK');
+  });
+  healthServer.listen(RENDER_PORT, HOST, () => {
+    console.log(`Health check server listening on ${HOST}:${RENDER_PORT}`);
+  });
 
-  // Also listen on Render's PORT (for health checks)
-  if (RENDER_PORT !== PG_PORT) {
-    console.log(`Starting health check listener on port ${RENDER_PORT}...`);
-    const healthServer = new PgServer(engine, RENDER_PORT, HOST);
-    await healthServer.start();
+  // Start PG server on PGPORT
+  if (PG_PORT !== RENDER_PORT) {
+    console.log(`\nStarting PG Proxy on port ${PG_PORT}...`);
+    const pgServer = new PgServer(engine, PG_PORT, HOST);
+    await pgServer.start();
   }
 }
 
