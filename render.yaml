@@ -17,6 +17,10 @@ services:
         value: "0.0.0.0"
       - key: STATE_FILE
         value: "/data/state.json"
+      - key: HTTP_PORT
+        value: "8080"
+      - key: PORT
+        value: "8080"
     disk:
       name: data
       mountPath: /data
