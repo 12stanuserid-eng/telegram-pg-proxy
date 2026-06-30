@@ -17,14 +17,11 @@ services:
         value: "0.0.0.0"
       - key: STATE_FILE
         value: "/data/state.json"
-      - key: HTTP_PORT
-        value: "8080"
-      - key: PORT
-        value: "8080"
     disk:
       name: data
       mountPath: /data
       sizeGB: 1
+    healthCheckPath: /healthz
     ports:
       - port: 5432
         protocol: TCP
