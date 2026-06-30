@@ -1,0 +1,33 @@
+app = "telegram-pg-proxy"
+primary_region = "sea"
+kill_signal = "SIGINT"
+kill_timeout = 5
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PGPORT = "5432"
+  PGHOST = "0.0.0.0"
+  STATE_FILE = "/data/state.json"
+
+[processes]
+  app = "node dist/index.js"
+
+[mounts]
+  source = "pgdata"
+  destination = "/data"
+
+[experimental]
+  auto_rollback = true
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 5432
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[services.ports]]
+    port = 5432
+    handlers = []
