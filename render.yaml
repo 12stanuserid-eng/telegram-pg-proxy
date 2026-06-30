@@ -21,7 +21,6 @@ services:
       name: data
       mountPath: /data
       sizeGB: 1
-    healthCheckPath: /
     ports:
       - port: 5432
         protocol: TCP
