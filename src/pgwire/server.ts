@@ -38,6 +38,17 @@ class PgConnection {
   private onData(chunk: Buffer): void {
     this.buffer = Buffer.concat([this.buffer, chunk]);
 
+    // Check if this looks like HTTP (for Render health checks)
+    if (!this.startupComplete && !this.sslHandled && this.buffer.length >= 4) {
+      const firstBytes = this.buffer.toString('ascii', 0, Math.min(4, this.buffer.length));
+      if (firstBytes === 'GET ' || firstBytes === 'POST' || firstBytes === 'HEAD' || firstBytes === 'PUT ') {
+        // HTTP health check request - respond with 200 OK
+        this.socket.write(Buffer.from('HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 30\r\n\r\n{"status":"ok","service":"proxy"}'));
+        this.buffer = Buffer.alloc(0);
+        return;
+      }
+    }
+
     try {
       this.processBuffer();
     } catch (err) {
