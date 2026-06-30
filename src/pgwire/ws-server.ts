@@ -76,9 +76,10 @@ class WsPgConnection {
     const msg = this.buffer.subarray(0, length);
     this.buffer = this.buffer.subarray(length);
 
-    // Check for SSLRequest and skip it (not applicable over WebSocket)
+    // Check for SSLRequest — reject with 'N' so psql knows to continue without SSL
     const protocol = msg.readUInt32BE(4);
     if (protocol === SSL_REQUEST_CODE) {
+      this.send(Buffer.from([0x4E])); // 'N' = SSL not supported
       if (this.buffer.length > 0) {
         this.processStartup();
       }
