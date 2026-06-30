@@ -11,17 +11,7 @@ services:
         sync: false
       - key: TELEGRAM_CHANNEL_ID
         sync: false
-      - key: PGPORT
-        value: "5432"
       - key: PGHOST
         value: "0.0.0.0"
-      - key: STATE_FILE
-        value: "/data/state.json"
-    disk:
-      name: data
-      mountPath: /data
-      sizeGB: 1
     healthCheckPath: /healthz
-    ports:
-      - port: 5432
-        protocol: TCP
+    plan: free
